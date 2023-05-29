@@ -16,7 +16,7 @@ func prepareData() {
 	nyaData.DeleteColumns("Index", "Date", "Adj Close", "CloseUSD")
 	nyaData.ClampColumnSlice("[:]", 0, 1)
 
-	nyaDataset := nyaData.ToLSTMDataset("[:]", "[:4]")
+	nyaDataset := nyaData.ToSequentialDataset("[:]", "[:4]", 60)
 	datasets.SaveDataset(nyaDataset, "data", "NYA_LSTM_Data")
 }
 
@@ -24,33 +24,25 @@ func train() {
 	nyaData := datasets.OpenDataset("data", "NYA_LSTM_Data")
 	trainingData, testingData := nyaData[:10000], nyaData[10000:]
 
-	network := networks.LSTM{}
-	network.Initialize(5, 32,
-		[]layers.Layer{
-			&layers.LinearLayer{Outputs: 32},
+	network := networks.Sequential{}
+	network.Initialize(60*5,
+		&layers.LSTMLayer{
+			Outputs:        12,
+			IntervalSize:   20,
+			OutputSequence: true,
 		},
-		[]layers.Layer{
-			&layers.LinearLayer{Outputs: 32},
-		},
-		[]layers.Layer{
-			&layers.LinearLayer{Outputs: 32},
-		},
-		[]layers.Layer{
-			&layers.LinearLayer{Outputs: 32},
-		},
-		[]layers.Layer{
-			&layers.LinearLayer{Outputs: 18},
-			&layers.TanhLayer{},
-			&layers.LinearLayer{Outputs: 4},
-		},
+		&layers.LinearLayer{Outputs: 28},
+		&layers.TanhLayer{},
+		&layers.LinearLayer{Outputs: 4},
+		&layers.ReluLayer{},
 	)
 
 	network.BatchSize = 128
 	network.SubBatch = 16
-	network.LearningRate = 0.01
-	network.Optimizer = &optimizers.AdaGrad{Epsilon: 0.2}
+	network.LearningRate = 1
+	network.Optimizer = &optimizers.AdaGrad{Epsilon: 0.1}
 
-	network.Train(trainingData, testingData, 60, 10*time.Second)
+	network.Train(trainingData, testingData, 30*time.Second)
 }
 
 func main() {
