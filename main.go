@@ -25,13 +25,13 @@ func prepareData() {
 
 	nyaData.PrintSummary()
 	nyaDatasetRaw := nyaData.ToSequentialDataset("[:]", "[3]", 240)
-	guessLength, guessWindow := 10, 1000
+	guessLength, guessWindow := 10, 100
 
-	nyaDataset := make([]datasets.DataPoint, len(nyaDatasetRaw)-guessLength-guessWindow)
+	nyaDataset := make([]datasets.DataPoint, len(nyaDatasetRaw)-guessLength*guessWindow)
 	for i := range nyaDataset {
 		output := make([]float64, guessLength)
 		for j := 0; j < guessLength; j++ {
-			output[j] = nyaDatasetRaw[i+j+guessWindow].Output[0]
+			output[j] = nyaDatasetRaw[i+(j+1)*guessWindow].Output[0]
 		}
 		nyaDataset[i] = datasets.DataPoint{Input: nyaDatasetRaw[i].Input, Output: output}
 	}
@@ -124,7 +124,7 @@ func main() {
 		} else if os.Args[1] == "-retrain" || os.Args[1] == "-r" {
 			retrain()
 		} else {
-			panic(os.Args[1] + " is not a valid flag (only -prep or -test works)")
+			panic(os.Args[1] + " is not a valid flag (only -prep, -retrain, or -test works)")
 		}
 	default:
 		panic("this file only takes 0 or 1 arguments!")
